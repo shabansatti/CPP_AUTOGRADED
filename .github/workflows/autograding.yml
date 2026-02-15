@@ -35,22 +35,34 @@ jobs:
           cmake --build build -- -j$(nproc)
 
       # 4. Run the CPP_AUTOGRADED executable as a single test
-      - name: A Test
-        id: autograded
+      - name: Run PositiveNumbers
+        id: PositiveNumbers
         uses: classroom-resources/autograding-command-grader@v1
         with:
-          test-name: An AUTOGRADED Test
-          command: ./build/tests/CPP_AUTOGRADED
+          test-name: SumUpToTest.PositiveNumbers
+          command: ./build/tests/CPP_AUTOGRADED --gtest_filter=SumUpToTest.PositiveNumbers
           timeout: 10
-          max-score: 40
+          max-score: 20
+
+      - name: Run EdgeCases
+        id: EdgeCases
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: SumUpToTest.EdgeCases
+          command: ./build/tests/CPP_AUTOGRADED --gtest_filter=SumUpToTest.EdgeCases
+          timeout: 10
+          max-score: 20
+
 
       - name: Autograding Reporter
         uses: classroom-resources/autograding-grading-reporter@v1
 
         env:
-          AUTOGRADED_RESULTS: "${{steps.autograded.outputs.result}}"
+          POSITIVENUMBERS_RESULTS: "${{steps.PositiveNumbers.outputs.result}}"
+          EDGECASES_RESULTS: "${{steps.EdgeCases.outputs.result}}"
+
         with:
-          runners: autograded
+          runners: PostiveNumbers, EdgeCases
 
 
 

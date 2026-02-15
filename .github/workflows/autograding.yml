@@ -1,0 +1,34 @@
+name: C++ Autograding
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  autograde:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y cmake g++
+
+      - name: Configure
+        run: cmake -S . -B build
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Run tests and generate results
+        run: |
+          cd build
+          ctest --output-junit results.xml || true
+
+      - name: Autograding
+        uses: classroom-resources/autograding@v1
+        with:
+          path: build/results.xml

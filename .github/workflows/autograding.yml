@@ -67,7 +67,7 @@ jobs:
 
       # 7. Upload grade artifact
       - name: Upload Grade
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: grade
           path: build/grade.txt

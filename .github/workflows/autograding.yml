@@ -30,19 +30,27 @@ jobs:
           sudo cp *.a /usr/lib
           cd $GITHUB_WORKSPACE
 
-      # 3. Build test binary using Makefile
+      # 3. Build test binary
       - name: Build tests
         run: make all
 
-      # 4. Run tests and capture results
-      - name: Run tests
-        id: student_tests
-        run: make test
+      # 4a. Run PositiveNumbers test (5 points)
+      - name: Run PositiveNumbers Test
+        id: positive_numbers
+        run: ./bin/test_student_code --gtest_filter=SumUpToTest.PositiveNumbers
 
-      # 5. Autograding reporter
+      # 4b. Run EdgeCases test (10 points)
+      - name: Run EdgeCases Test
+        id: edge_cases
+        run: ./bin/test_student_code --gtest_filter=SumUpToTest.EdgeCases
+
+      # 5. Autograding Reporter
       - name: Autograding Reporter
         uses: classroom-resources/autograding-grading-reporter@v1
         with:
-          runners: student_tests
+          runners: |
+            positive_numbers
+            edge_cases
         env:
-          STUDENT_TEST_RESULTS: ${{ steps.student_tests.outputs.result }}
+          POSITIVE_NUMBERS_RESULTS: ${{ steps.positive_numbers.outputs.result }}
+          EDGE_CASES_RESULTS: ${{ steps.edge_cases.outputs.result }}

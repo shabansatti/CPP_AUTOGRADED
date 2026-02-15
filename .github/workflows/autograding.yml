@@ -45,10 +45,4 @@ jobs:
           timeout: 10
           max-score: 40
 
-      # 5. Report results to GitHub Classroom
-      - name: Autograding Reporter
-        uses: classroom-resources/autograding-grading-reporter@v1
-        env:
-          TEST-NEW-RESULTS: "${{ steps.autograded.outputs.result }}"
-        with:
-          runners: autograded
+

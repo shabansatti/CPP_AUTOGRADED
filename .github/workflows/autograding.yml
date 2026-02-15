@@ -60,8 +60,8 @@ jobs:
         uses: classroom-resources/autograding-grading-reporter@v1
 
         env:
-          autograded_RESULTS: "${{steps.autograded.outputs.result}}"
-          autograded_RESULTS2: "${{steps.autograded2.outputs.result}}"
+          AUTOGRADED_RESULTS: "${{steps.autograded.outputs.result}}"
+          AUTOGRADED2_RESULTS: "${{steps.autograded2.outputs.result}}"
         with:
           runners: autograded, autograded2
 

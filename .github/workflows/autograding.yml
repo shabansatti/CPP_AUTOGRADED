@@ -44,5 +44,11 @@ jobs:
           command: ./build/tests/CPP_AUTOGRADED
           timeout: 10
           max-score: 40
+      - name: Autograding Reporter
+        uses: ./
+        env:
+          autograded-RESULTS: "${{steps.autograded.outputs.result}}"
+        with:
+          runners: autograded
 
 

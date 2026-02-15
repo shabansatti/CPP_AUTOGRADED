@@ -44,14 +44,26 @@ jobs:
           command: ./build/tests/CPP_AUTOGRADED
           timeout: 10
           max-score: 40
+
+      - name: A Test2
+        id: autograded2
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: An AUTOGRADED Test2
+          setup-command: echo "::notice test"
+          command: ./build/tests/CPP_AUTOGRADED
+          timeout: 10
+          max-score: 40
+
+
       - name: Autograding Reporter
         uses: classroom-resources/autograding-grading-reporter@v1
 
         env:
           autograded_RESULTS: "${{steps.autograded.outputs.result}}"
-          run: echo "::notice ${{toJSON(steps.autograded.outputs)}}"
+          autograded_RESULTS2: "${{steps.autograded2.outputs.result}}"
         with:
-          runners: autograded
+          runners: autograded, autograded2
 
 
 

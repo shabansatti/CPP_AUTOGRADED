@@ -62,7 +62,7 @@ jobs:
           EDGECASES_RESULTS: "${{steps.EdgeCases.outputs.result}}"
 
         with:
-          runners: PostiveNumbers, EdgeCases
+          runners: PositiveNumbers, EdgeCases
 
 
 

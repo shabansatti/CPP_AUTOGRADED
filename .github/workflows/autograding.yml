@@ -33,7 +33,7 @@ jobs:
 
       # 5. Run Google Tests and generate XML
       - name: Run Google Tests
-        run: ./build/CPP_AUTOGRADED --gtest_output=xml:build/results.xml
+        run: ./build/tests/CPP_AUTOGRADED --gtest_output=xml:build/results.xml
 
       # 6. Calculate grade per test
       - name: Calculate Grade

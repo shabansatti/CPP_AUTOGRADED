@@ -2,7 +2,6 @@ name: Autograding Tests
 on:
   - push
   - workflow_dispatch
-  - repository_dispatch
 
 permissions:
   checks: write
@@ -22,27 +21,28 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y g++ cmake libgtest-dev make
-          # Build Google Test from source
-          cd /usr/src/gtest
-          sudo cmake CMakeLists.txt
-          sudo make
-          sudo cp *.a /usr/lib
-          cd $GITHUB_WORKSPACE
+          sudo apt-get install -y g++ cmake make
 
-      # 3. Build test binary
-      - name: Build tests
-        run: make all
+      # 3. Configure and build CMake project
+      - name: Configure CMake
+        run: cmake -B build -S .
 
-      # 4a. Run PositiveNumbers test (5 points)
+      - name: Build project
+        run: cmake --build build --config Release
+
+      # 4a. Run PositiveNumbers test
       - name: Run PositiveNumbers Test
         id: positive_numbers
-        run: ./bin/test_student_code --gtest_filter=SumUpToTest.PositiveNumbers
+        run: |
+          cd build
+          ctest -R SumUpToTest.PositiveNumbers --output-on-failure
 
-      # 4b. Run EdgeCases test (10 points)
+      # 4b. Run EdgeCases test
       - name: Run EdgeCases Test
         id: edge_cases
-        run: ./bin/test_student_code --gtest_filter=SumUpToTest.EdgeCases
+        run: |
+          cd build
+          ctest -R SumUpToTest.EdgeCases --output-on-failure
 
       # 5. Autograding Reporter
       - name: Autograding Reporter

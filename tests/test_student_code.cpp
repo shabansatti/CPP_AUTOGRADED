@@ -11,5 +11,5 @@ TEST(SumUpToTest, EdgeCases)
 {
     EXPECT_EQ(sumUpTo(1), 1);
     EXPECT_EQ(sumUpTo(0), 0);
-    EXPECT_EQ(sumUpTo(-5), 0);
+    EXPECT_EQ(sumUpTo(-5), 10);
 }

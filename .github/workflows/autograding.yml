@@ -1,95 +1,54 @@
-name: Autograding with Google Test
+name: Autograding Tests
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  repository_dispatch:
+
+permissions:
+  checks: write
+  actions: read
+  contents: read
 
 jobs:
-  autograde:
+  run-autograding-tests:
     runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
 
     steps:
       # 1. Checkout repository
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       # 2. Install dependencies
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake libgtest-dev xmlstarlet
+          sudo apt-get install -y build-essential cmake
 
-      # 3. Configure project
-      - name: Configure
-        run: cmake -S . -B build
-
-      # 4. Build project
-      - name: Build
-        run: cmake --build build -- -j$(nproc)
-
-      # 5. Run Google Tests (autograder runner)
-      - name: Run Google Tests
-        id: tests
+      # 3. Configure & build project
+      - name: Build project
         run: |
-          ./build/tests/CPP_AUTOGRADED \
-            --gtest_output=xml:build/results.xml || true
+          cmake -S . -B build
+          cmake --build build -- -j$(nproc)
 
-      # 6. Generate Classroom-compatible autograding JSON
-      - name: Generate autograding results
-        run: |
-          cd build
+      # 4. Run the CPP_AUTOGRADED executable as a single test
+      - name: test_cpp_autograded
+        id: test_cpp_autograded
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: CPP_AUTOGRADED
+          setup-command: ''
+          command: ./build/CPP_AUTOGRADED
+          timeout: 10
+          max-score: 40
 
-          # Define points for each test (editable in YAML)
-          declare -A TEST_POINTS=(
-            ["SumUpToTest.PositiveNumbers"]=60
-            ["SumUpToTest.EdgeCases"]=40
-          )
-
-          # Start JSON
-          echo '{ "tests": [' > results.json
-          FIRST=true
-
-          # Iterate tests
-          for TEST in "${!TEST_POINTS[@]}"; do
-            CLASS="${TEST%%.*}"
-            NAME="${TEST#*.}"
-            POINTS=${TEST_POINTS[$TEST]}
-
-            FAILED=$(xmlstarlet sel \
-              -t -v "count(//testcase[@classname='$CLASS' and @name='$NAME']/failure)" \
-              results.xml)
-
-            if [ "$FAILED" -eq 0 ]; then
-              STATUS="passed"
-              SCORE=$POINTS
-            else
-              STATUS="failed"
-              SCORE=0
-            fi
-
-            if [ "$FIRST" = false ]; then
-              echo ',' >> results.json
-            fi
-            FIRST=false
-
-            # Append this test's JSON safely
-            printf '{ "name": "%s", "status": "%s", "score": %d, "max_score": %d }' \
-              "$TEST" "$STATUS" "$SCORE" "$POINTS" >> results.json
-          done
-
-          # Close JSON
-          echo '] }' >> results.json
-
-          # Export JSON to environment variable for Classroom reporter
-          echo "TEST_RESULTS<<EOF" >> $GITHUB_ENV
-          cat results.json >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-      # 7. Report results to GitHub Classroom
+      # 5. Report results to GitHub Classroom
       - name: Autograding Reporter
         uses: classroom-resources/autograding-grading-reporter@v1
         env:
-          TEST_NEW_RESULTS: JSON.stringify(40)
+          TEST_NEW_RESULTS: "${{ steps.test_cpp_autograded.outputs.result }}"
         with:
-          runners: tests
+          runners: test_cpp_autograded

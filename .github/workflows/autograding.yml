@@ -35,11 +35,11 @@ jobs:
           cmake --build build -- -j$(nproc)
 
       # 4. Run the CPP_AUTOGRADED executable as a single test
-      - name: autograded
+      - name: A Test
         id: autograded
         uses: classroom-resources/autograding-command-grader@v1
         with:
-          test-name: AUTOGRADED
+          test-name: An AUTOGRADED Test
           setup-command: ''
           command: make test
           timeout: 10
@@ -49,6 +49,6 @@ jobs:
       - name: Autograding Reporter
         uses: classroom-resources/autograding-grading-reporter@v1
         env:
-          TEST_NEW_RESULTS: "${{ steps.autograded.outputs.result }}"
+          TEST-NEW-RESULTS: "${{ steps.autograded.outputs.result }}"
         with:
           runners: autograded

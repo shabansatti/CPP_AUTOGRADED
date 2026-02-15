@@ -31,15 +31,43 @@ jobs:
       - name: Build project
         run: cmake --build build -- -j$(nproc)
 
-      # 5. Run Google Tests and generate XML
+      # 5. Run Google Test and produce XML results
       - name: Run Google Tests
         run: ./build/tests/CPP_AUTOGRADED --gtest_output=xml:build/results.xml
 
       # 6. Calculate grade per test
       - name: Calculate Grade
         run: |
-          # Navigate to build folder
           cd build
 
-          # Define marks per test case
-          declare -A
+          # Assign marks per test case
+          declare -A TEST_MARKS
+          TEST_MARKS=( ["SumUpToTest.PositiveNumbers"]=60 ["SumUpToTest.EdgeCases"]=40 )
+
+          TOTAL=0
+          GRADE=0
+
+          for TEST in "${!TEST_MARKS[@]}"; do
+            TOTAL=$((TOTAL + TEST_MARKS[$TEST]))
+            TEST_NAME="${TEST#*.}"   # Extract test name
+            CLASS_NAME="${TEST%%.*}" # Extract class name
+
+            # Check if test passed (no <failure> element in XML for this test)
+            if ! grep -A2 "classname=\"$CLASS_NAME\" name=\"$TEST_NAME\"" results.xml | grep -q "<failure"; then
+              GRADE=$((GRADE + TEST_MARKS[$TEST]))
+            fi
+          done
+
+          echo "Total possible marks: $TOTAL"
+          echo "Student grade: $GRADE"
+
+          # Save grade for GitHub Classroom
+          echo "GRADE=$GRADE" >> $GITHUB_ENV
+          echo $GRADE > grade.txt
+
+      # 7. Upload grade artifact
+      - name: Upload Grade
+        uses: actions/upload-artifact@v3
+        with:
+          name: grade
+          path: build/grade.txt

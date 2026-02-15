@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.actor != 'github-classroom[bot]'
     steps:
-      # 1. Checkout repo
+      # 1. Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -23,28 +23,25 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y g++ cmake make
 
-      # 3. Configure and build CMake project
+      # 3. Configure CMake in a fresh build folder
       - name: Configure CMake
         run: cmake -B build -S .
 
+      # 4. Build the project
       - name: Build project
         run: cmake --build build --config Release
 
-      # 4a. Run PositiveNumbers test
+      # 5a. Run PositiveNumbers test (5 points)
       - name: Run PositiveNumbers Test
         id: positive_numbers
-        run: |
-          cd build
-          ctest -R SumUpToTest.PositiveNumbers --output-on-failure
+        run: cd build && ./CPP_AUTOGRADED --gtest_filter=SumUpToTest.PositiveNumbers
 
-      # 4b. Run EdgeCases test
+      # 5b. Run EdgeCases test (10 points)
       - name: Run EdgeCases Test
         id: edge_cases
-        run: |
-          cd build
-          ctest -R SumUpToTest.EdgeCases --output-on-failure
+        run: cd build && ./CPP_AUTOGRADED --gtest_filter=SumUpToTest.EdgeCases
 
-      # 5. Autograding Reporter
+      # 6. Autograding reporter for Classroom
       - name: Autograding Reporter
         uses: classroom-resources/autograding-grading-reporter@v1
         with:

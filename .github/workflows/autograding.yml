@@ -1,4 +1,4 @@
-name: CMake Build for CPP_AUTOGRADED
+name: Autograding with Google Test
 
 on:
   push:
@@ -9,35 +9,70 @@ on:
       - main
 
 jobs:
-  build:
+  autograde:
     runs-on: ubuntu-latest
 
     steps:
       # 1. Checkout the repository
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # 2. Install build essentials (GCC, Make, etc.) and CMake
+      # 2. Install build dependencies
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake
+          sudo apt-get install -y build-essential cmake libgtest-dev
 
-      # 3. Create build directory
-      - name: Create build directory
-        run: mkdir -p build
-
-      # 4. Configure project with CMake
+      # 3. Configure project with CMake
       - name: Configure project
-        run: cmake -S . -B build
+        run: |
+          mkdir -p build
+          cd build
+          cmake ..
 
-      # 5. Build project
+      # 4. Build project
       - name: Build project
         run: cmake --build build -- -j$(nproc)
 
-      # 6. Run tests (if any)
-      - name: Run tests
-        if: success()
+      # 5. Run Google Test and produce XML results
+      - name: Run Google Tests
         run: |
           cd build
-          ctest --output-on-failure
+          ./CPP_AUTOGRADED --gtest_output=xml:results.xml
+
+      # 6. Calculate grade per test
+      - name: Calculate Grade
+        run: |
+          cd build
+
+          # Assign marks per test case
+          declare -A TEST_MARKS
+          TEST_MARKS=( ["SumUpToTest.PositiveNumbers"]=60 ["SumUpToTest.EdgeCases"]=40 )
+
+          TOTAL=0
+          GRADE=0
+
+          for TEST in "${!TEST_MARKS[@]}"; do
+            TOTAL=$((TOTAL + TEST_MARKS[$TEST]))
+            TEST_NAME="${TEST#*.}"   # Extract test name
+            CLASS_NAME="${TEST%%.*}" # Extract class name
+
+            # Check if test passed in XML
+            if grep -q "classname=\"$CLASS_NAME\" name=\"$TEST_NAME\".*result=\"COMPLETED\"" results.xml; then
+              GRADE=$((GRADE + TEST_MARKS[$TEST]))
+            fi
+          done
+
+          echo "Total possible marks: $TOTAL"
+          echo "Student grade: $GRADE"
+
+          # Save grade for GitHub Classroom
+          echo "GRADE=$GRADE" >> $GITHUB_ENV
+          echo $GRADE > grade.txt
+
+      # 7. Upload grade artifact
+      - name: Upload Grade
+        uses: actions/upload-artifact@v3
+        with:
+          name: grade
+          path: build/grade.txt

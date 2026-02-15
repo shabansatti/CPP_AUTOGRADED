@@ -36,7 +36,8 @@ jobs:
         run: ./build/tests/CPP_AUTOGRADED --gtest_output=xml:build/results.xml
 
       # 6. Calculate grade per test
-      - name: Calculate Grade
+      - name: CalculateGrade
+        id: CalculateGrade
         run: |
           cd build
 
@@ -71,3 +72,10 @@ jobs:
         with:
           name: grade
           path: build/grade.txt
+
+      - name: Autograding Reporter
+        uses: classroom-resources/autograding-grading-reporter@v1
+        env:
+          TEST_NEW_RESULTS: "${{env.GRADE}}"
+        with:
+          runners: test_new

@@ -40,7 +40,7 @@ jobs:
         uses: classroom-resources/autograding-command-grader@v1
         with:
           test-name: An AUTOGRADED Test
-          setup-command: ''
+          setup-command: echo "test=world" >> "$GITHUB_OUTPUT"
           command: ./build/tests/CPP_AUTOGRADED
           timeout: 10
           max-score: 40

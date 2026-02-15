@@ -1,53 +1,49 @@
-name: Autograding Tests
-on:
-  - push
-  - workflow_dispatch
+name: CMake Build for CPP_AUTOGRADED
 
-permissions:
-  checks: write
-  actions: read
-  contents: read
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  run-autograding-tests:
+  build:
     runs-on: ubuntu-latest
-    if: github.actor != 'github-classroom[bot]'
+
     steps:
-      # 1. Checkout the repository
-      - name: Checkout code
-        uses: actions/checkout@v4
+      # 1. Checkout your repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      # 2. Install dependencies
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y g++ cmake make
-
-      # 3. Configure CMake in a fresh build folder
-      - name: Configure CMake
-        run: cmake -B build -S .
-
-      # 4. Build the project
-      - name: Build project
-        run: cmake --build build --config Release
-
-      # 5a. Run PositiveNumbers test (5 points)
-      - name: Run PositiveNumbers Test
-        id: positive_numbers
-        run: cd build && ./CPP_AUTOGRADED --gtest_filter=SumUpToTest.PositiveNumbers
-
-      # 5b. Run EdgeCases test (10 points)
-      - name: Run EdgeCases Test
-        id: edge_cases
-        run: cd build && ./CPP_AUTOGRADED --gtest_filter=SumUpToTest.EdgeCases
-
-      # 6. Autograding reporter for Classroom
-      - name: Autograding Reporter
-        uses: classroom-resources/autograding-grading-reporter@v1
+      # 2. Set up C++ compiler
+      - name: Setup C++ compiler
+        uses: actions/setup-cpp@v1
         with:
-          runners: |
-            positive_numbers
-            edge_cases
-        env:
-          POSITIVE_NUMBERS_RESULTS: ${{ steps.positive_numbers.outputs.result }}
-          EDGE_CASES_RESULTS: ${{ steps.edge_cases.outputs.result }}
+          compiler: gcc
+
+      # 3. Install CMake
+      - name: Install CMake
+        uses: lukka/get-cmake@v4
+        with:
+          cmake-version: '3.27.0'
+
+      # 4. Create build directory
+      - name: Create build directory
+        run: mkdir -p build
+
+      # 5. Configure project with CMake
+      - name: Configure project
+        run: cmake -S . -B build
+
+      # 6. Build project
+      - name: Build project
+        run: cmake --build build -- -j$(nproc)
+
+      # 7. Run tests (if any)
+      - name: Run tests
+        if: success()
+        run: |
+          cd build
+          ctest --output-on-failure

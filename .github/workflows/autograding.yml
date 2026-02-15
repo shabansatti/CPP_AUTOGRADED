@@ -46,10 +46,11 @@ jobs:
           max-score: 40
       - name: Autograding Reporter
         uses: classroom-resources/autograding-grading-reporter@v1
-        run: echo "::notice ${{steps.autograded.outputs.result}}"
+
         env:
           autograded_RESULTS: "${{steps.autograded.outputs.result}}"
         with:
           runners: autograded
+          run: echo "::notice ${{steps.autograded.outputs.result}}"
 
 

@@ -2,80 +2,89 @@ name: Autograding with Google Test
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   autograde:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout repository
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # 2. Install build dependencies
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake libgtest-dev
+          sudo apt-get install -y build-essential cmake libgtest-dev xmlstarlet
 
-      # 3. Configure project (out-of-source build)
-      - name: Configure project
+      - name: Configure
         run: cmake -S . -B build
 
-      # 4. Build project
-      - name: Build project
+      - name: Build
         run: cmake --build build -- -j$(nproc)
 
-      # 5. Run Google Test and produce XML results
+      # ─────────────────────────────────────────────
+      # AUTOGRADER RUNNER (must have an ID)
+      # ─────────────────────────────────────────────
       - name: Run Google Tests
-        run: ./build/tests/CPP_AUTOGRADED --gtest_output=xml:build/results.xml
+        id: tests
+        run: |
+          ./build/tests/CPP_AUTOGRADED \
+            --gtest_output=xml:build/results.xml || true
 
-      # 6. Calculate grade per test
-      - name: CalculateGrade
-        id: CalculateGrade
+      # ─────────────────────────────────────────────
+      # CONVERT RESULTS → CLASSROOM JSON
+      # ─────────────────────────────────────────────
+      - name: Generate autograding results
         run: |
           cd build
 
-          # Assign marks per test case
-          declare -A TEST_MARKS
-          TEST_MARKS=( ["SumUpToTest.PositiveNumbers"]=60 ["SumUpToTest.EdgeCases"]=40 )
+          declare -A TEST_POINTS=(
+            ["SumUpToTest.PositiveNumbers"]=60
+            ["SumUpToTest.EdgeCases"]=40
+          )
 
-          TOTAL=0
-          GRADE=0
+          echo '{ "tests": [' > results.json
+          FIRST=true
 
-          for TEST in "${!TEST_MARKS[@]}"; do
-            TOTAL=$((TOTAL + TEST_MARKS[$TEST]))
-            TEST_NAME="${TEST#*.}"   # Extract test name
-            CLASS_NAME="${TEST%%.*}" # Extract class name
+          for TEST in "${!TEST_POINTS[@]}"; do
+            CLASS="${TEST%%.*}"
+            NAME="${TEST#*.}"
+            POINTS=${TEST_POINTS[$TEST]}
 
-            # Check if test passed (no <failure> element in XML for this test)
-            if ! grep -A2 "classname=\"$CLASS_NAME\" name=\"$TEST_NAME\"" results.xml | grep -q "<failure"; then
-              GRADE=$((GRADE + TEST_MARKS[$TEST]))
+            FAILED=$(xmlstarlet sel \
+              -t -v "count(//testcase[@classname='$CLASS' and @name='$NAME']/failure)" \
+              results.xml)
+
+            if [ "$FAILED" -eq 0 ]; then
+              SCORE=$POINTS
+              STATUS="passed"
+            else
+              SCORE=0
+              STATUS="failed"
             fi
-          done
 
-          echo "Total possible marks: $TOTAL"
-          echo "Student grade: $GRADE"
+            [ "$FIRST" = false ] && echo ',' >> results.json
+            FIRST=false
 
-          # Save grade for GitHub Classroom
-          echo "GRADE=$GRADE" >> $GITHUB_ENV
-          echo $GRADE > grade.txt
+            cat >> results.json <<EOF
+  {
+    "name": "$TEST",
+    "status": "$STATUS",
+    "score": $SCORE,
+    "max_score": $POINTS
+  }
+  EOF
+  done
+  
+  echo '] }' >> results.json
 
-      # 7. Upload grade artifact
-      - name: Upload Grade
-        uses: actions/upload-artifact@v4
-        with:
-          name: grade
-          path: build/grade.txt
-
-      - name: Autograding Reporter
-        uses: classroom-resources/autograding-grading-reporter@v1
-        env:
-          TEST_NEW_RESULTS: "${{env.GRADE}}"
-        with:
-          runners: test_new
+# ─────────────────────────────────────────────
+# REPORT TO GITHUB CLASSROOM
+# ─────────────────────────────────────────────
+- name: Autograding Reporter
+  uses: classroom-resources/autograding-grading-reporter@v1
+  with:
+    runners: tests
+    results-path: build/results.json

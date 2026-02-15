@@ -24,18 +24,14 @@ jobs:
       - name: Build
         run: cmake --build build -- -j$(nproc)
 
-      # ─────────────────────────────────────────────
-      # AUTOGRADER RUNNER (must have an ID)
-      # ─────────────────────────────────────────────
+      # ─── AUTOGRADER RUNNER ───────────────────────
       - name: Run Google Tests
         id: tests
         run: |
           ./build/tests/CPP_AUTOGRADED \
             --gtest_output=xml:build/results.xml || true
 
-      # ─────────────────────────────────────────────
-      # CONVERT RESULTS → CLASSROOM JSON
-      # ─────────────────────────────────────────────
+      # ─── GENERATE CLASSROOM JSON ─────────────────
       - name: Generate autograding results
         run: |
           cd build
@@ -58,33 +54,27 @@ jobs:
               results.xml)
 
             if [ "$FAILED" -eq 0 ]; then
-              SCORE=$POINTS
               STATUS="passed"
+              SCORE=$POINTS
             else
-              SCORE=0
               STATUS="failed"
+              SCORE=0
             fi
 
-            [ "$FIRST" = false ] && echo ',' >> results.json
+            if [ "$FIRST" = false ]; then
+              echo ',' >> results.json
+            fi
             FIRST=false
 
-            cat >> results.json <<EOF
-  {
-    "name": "$TEST",
-    "status": "$STATUS",
-    "score": $SCORE,
-    "max_score": $POINTS
-  }
-  EOF
-  done
-  
-  echo '] }' >> results.json
+            printf '{ "name": "%s", "status": "%s", "score": %d, "max_score": %d }' \
+              "$TEST" "$STATUS" "$SCORE" "$POINTS" >> results.json
+          done
 
-# ─────────────────────────────────────────────
-# REPORT TO GITHUB CLASSROOM
-# ─────────────────────────────────────────────
-- name: Autograding Reporter
-  uses: classroom-resources/autograding-grading-reporter@v1
-  with:
-    runners: tests
-    results-path: build/results.json
+          echo '] }' >> results.json
+
+      # ─── REPORT TO CLASSROOM ─────────────────────
+      - name: Autograding Reporter
+        uses: classroom-resources/autograding-grading-reporter@v1
+        with:
+          runners: tests
+          results-path: build/results.json

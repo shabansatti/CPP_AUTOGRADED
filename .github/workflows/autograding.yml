@@ -11,39 +11,46 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout repository
       - uses: actions/checkout@v4
 
+      # 2. Install dependencies
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake libgtest-dev xmlstarlet
 
+      # 3. Configure project
       - name: Configure
         run: cmake -S . -B build
 
+      # 4. Build project
       - name: Build
         run: cmake --build build -- -j$(nproc)
 
-      # ─── AUTOGRADER RUNNER ───────────────────────
+      # 5. Run Google Tests (autograder runner)
       - name: Run Google Tests
         id: tests
         run: |
           ./build/tests/CPP_AUTOGRADED \
             --gtest_output=xml:build/results.xml || true
 
-      # ─── GENERATE CLASSROOM JSON ─────────────────
+      # 6. Generate Classroom-compatible autograding JSON
       - name: Generate autograding results
         run: |
           cd build
 
+          # Define points for each test (editable in YAML)
           declare -A TEST_POINTS=(
             ["SumUpToTest.PositiveNumbers"]=60
             ["SumUpToTest.EdgeCases"]=40
           )
 
+          # Start JSON
           echo '{ "tests": [' > results.json
           FIRST=true
 
+          # Iterate tests
           for TEST in "${!TEST_POINTS[@]}"; do
             CLASS="${TEST%%.*}"
             NAME="${TEST#*.}"
@@ -66,15 +73,23 @@ jobs:
             fi
             FIRST=false
 
+            # Append this test's JSON safely
             printf '{ "name": "%s", "status": "%s", "score": %d, "max_score": %d }' \
               "$TEST" "$STATUS" "$SCORE" "$POINTS" >> results.json
           done
 
+          # Close JSON
           echo '] }' >> results.json
 
-      # ─── REPORT TO CLASSROOM ─────────────────────
+          # Export JSON to environment variable for Classroom reporter
+          echo "TEST_RESULTS<<EOF" >> $GITHUB_ENV
+          cat results.json >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      # 7. Report results to GitHub Classroom
       - name: Autograding Reporter
         uses: classroom-resources/autograding-grading-reporter@v1
+        env:
+          TEST_RESULTS: ${{ env.TEST_RESULTS }}
         with:
           runners: tests
-          results-path: build/results.json

@@ -90,6 +90,6 @@ jobs:
       - name: Autograding Reporter
         uses: classroom-resources/autograding-grading-reporter@v1
         env:
-          TEST_RESULTS: ${{ env.TEST_RESULTS }}
+          TEST_RESULTS: JSON.stringify(${{ env.TEST_RESULTS }})
         with:
           runners: tests

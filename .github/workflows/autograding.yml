@@ -51,6 +51,5 @@ jobs:
           autograded_RESULTS: "${{steps.autograded.outputs.result}}"
         with:
           runners: autograded
-          run: echo "::notice ${{steps.autograded.outputs.result}}"
 
 

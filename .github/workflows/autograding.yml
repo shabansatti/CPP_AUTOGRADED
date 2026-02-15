@@ -49,7 +49,7 @@ jobs:
 
         env:
           autograded_RESULTS: "${{steps.autograded.outputs.result}}"
-          run: echo "::notice ${{steps.autograded.outputs.result}}"
+          run: echo "::notice ${{steps.autograded.outputs}}"
         with:
           runners: autograded
 
